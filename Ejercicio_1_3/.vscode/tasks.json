@@ -1,0 +1,32 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "Construir Proyecto OpenGL",
+            "command": "C:/msys64/ucrt64/bin/g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-O2",
+                "-std=c++17",
+                "-I", "C:/msys64/ucrt64/include",
+                "-L", "C:/msys64/ucrt64/lib",
+                "${workspaceFolder}/src/*.cpp",
+                "-o", "${workspaceFolder}/output/${workspaceFolderBasename}.exe",
+                "-lfreeglut",
+                "-lglew32",
+                "-lopengl32",
+                "-lglu32"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": ["$gcc"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Task generada para Windows (UCRT64)"
+        }
+    ]
+}

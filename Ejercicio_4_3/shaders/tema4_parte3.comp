@@ -1,0 +1,55 @@
+#version 430  
+
+layout( std140, binding=0 ) buffer Pos {
+   vec4 Positions[ ]; 
+};
+layout( std140, binding=1 ) buffer Vel {
+   vec4 Velocities[ ]; 
+};
+
+// Tarea por hacer: definir el tamaño del grupo de trabajo local.
+
+// Declara el tamaño del grupo de trabajo local.
+// Usa 1D con 256 hilos (coincide con WORK_GROUP_SIZE del .cpp). Cada hilo procesará una partícula.
+layout( local_size_x = 512, local_size_y = 1, local_size_z = 1 ) in;
+
+const float dt = 0.0005;
+const float tamCube = 1.0; // El cubo que engloba las particulas x,y,z = [-tamCube, tamCube]
+const vec3 g = vec3( 0.0, -9.8, 0.0 );
+
+// Se envía desde la aplicación con glUniform1f cada frame.
+layout(location = 0) uniform float uDampingFactor = 1.0; // Factor de amortiguamiento para simular fricción o resistencia del aire.
+
+void main()
+{
+	// Tarea por hacer: obtener el id del hilo (partícula)
+	// leer su posición y velocidad de los buffers
+	// calcular la nueva posición y velocidad (si choca con las paredes del cubo la partícula cambia de dirección)
+	// Actualizar los valores de los buffers.
+
+	// Obtiene el ID único del hilo dentro de todo el dispatch. Como el problema es 1D, usa solo la componente .x.
+	// Este ID identifica unívocamente la partícula que procesa este hilo.
+	uint gid = gl_GlobalInvocationID.x;
+
+	// Lee la posición y velocidad actuales del buffer (estado del frame anterior)
+	vec3 p = Positions[gid].xyz;
+	vec3 v = Velocities[gid].xyz;
+
+	// Calcula la nueva posición y velocidad aplicando gravedad (integración de Euler):
+	//   p' = p + v·dt + 0.5·g·dt²
+	//   v' = v + g·dt
+	vec3 pp = p + v * dt + 0.5 * g * dt * dt;
+	vec3 vp = v + g * dt;
+
+	// Si la partícula sale del cubo [-tamCube, tamCube]^3, la devuelve al borde e invierte la componente de velocidad correspondiente (rebote elástico).
+	if (pp.x >  tamCube) { pp.x =  tamCube; vp.x = -abs(vp.x) * uDampingFactor; }
+	if (pp.x < -tamCube) { pp.x = -tamCube; vp.x =  abs(vp.x) * uDampingFactor; }
+	if (pp.y >  tamCube) { pp.y =  tamCube; vp.y = -abs(vp.y) * uDampingFactor; }
+	if (pp.y < -tamCube) { pp.y = -tamCube; vp.y =  abs(vp.y) * uDampingFactor; }
+	if (pp.z >  tamCube) { pp.z =  tamCube; vp.z = -abs(vp.z) * uDampingFactor; }
+	if (pp.z < -tamCube) { pp.z = -tamCube; vp.z =  abs(vp.z) * uDampingFactor; }
+
+	// Escriba la nueva posición y velocidad de vuelta en los buffers. En el siguiente frame, el compute shader leerá estos valores actualizados.
+	Positions[gid].xyz = pp;
+	Velocities[gid].xyz = vp;
+}
